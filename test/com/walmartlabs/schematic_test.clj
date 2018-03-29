@@ -369,3 +369,26 @@
              (-> (sc/assemble-system config)
                  (component/start)
                  :app))))))
+
+(deftest test-debug-fn
+  (let [config '{:top {:spin :left}
+                 :comp/top {:sc/create-fn top
+                            :sc/merge [{:from :top}]
+                            :sc/refs {:body :comp/body}}
+                 :comp/body {:sc/create-fn body}
+                 :comp/tail {:sc/create-fn tail}}]
+    (testing "no component exclusions"
+      (is (= '{:comp/body #:sc{:create-fn body}
+               :comp/tail #:sc{:create-fn tail}
+               :comp/top {:sc/create-fn top
+                          :sc/refs {:body :comp/body}
+                          :spin :left}
+               :top {:spin :left}}
+             (sc/merged-config config))))
+
+    (testing "with selected components"
+      (is (= '#:comp{:body #:sc{:create-fn body}
+                     :top {:sc/create-fn top
+                           :sc/refs {:body :comp/body}
+                           :spin :left}}
+             (sc/merged-config config [:comp/top]))))))

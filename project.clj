@@ -1,4 +1,4 @@
-(defproject com.walmartlabs/schematic "1.0.0"
+(defproject com.walmartlabs/schematic "1.1.0"
   :description "A library to aid in assembling Systems for use with Component"
   :url "https://github.com/walmartlabs/schematic"
   :license {:name "Apache Software License 2.0"

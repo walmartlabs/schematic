@@ -1,5 +1,7 @@
 # walmartlabs/schematic
 
+[![Clojars Project](https://img.shields.io/clojars/v/com.walmartlabs/schematic.svg)](https://clojars.org/com.walmartlabs/schematic)
+
 Schematic is a Clojure library which aids in assembling [Component][] systems
 from configuration data. That configuration data is often read from an `edn` file.
 The structure of the configuration data was inspired by [Integrant][].
@@ -15,6 +17,8 @@ The primary features provided by Schematic are:
 
 [component]: https://github.com/stuartsierra/component
 [integrant]: https://github.com/weavejester/integrant
+
+[API Documentation](http://walmartlabs.github.io/schematic/)
 
 ## Overview
 

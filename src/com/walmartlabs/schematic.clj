@@ -266,7 +266,9 @@
 ;; ## Public API
 
 (defn merged-config
-  "For the provided config, replaces instances of :sc/merge with resolved values."
+  "For the provided config, replaces instances of :sc/merge with resolved values.
+
+  This is useful for testing, to see the intermediate state before components are instantiated."
   [config]
   (let [dep-graph (merges-dependency-graph config)
         topo-nodes (dep/topo-sort dep-graph)]
@@ -275,7 +277,10 @@
             config topo-nodes)))
 
 (defn merged-subconfig
-  "Applies any merge definitions, then selects just the specified subset of components."
+  "Applies any merge definitions, then selects just the specified subset of components, including
+  transitive dependencies.
+
+  This is useful for testing, to see the intermediate state before components are instantiated."
   ([config]
    (merged-subconfig config nil))
   ([config component-ids]
@@ -287,10 +292,11 @@
   "Assembles config into a system-map which can be used with `com.stuartsierra.component/start`.
 
   config - configuration for the system
+
   component-ids - a sequence of component ids. When provided, only the neccessary
-  .               parts of the system map to support those components will be inlcluded
-  .               in the final system map.
-  .               Default: all keys in the system"
+  parts of the system map to support those components will be inlcluded
+  in the final system map.
+  By default, the returned system contains all components from the supplied config."
   ([config]
    (assemble-system config nil))
   ([config component-ids]

@@ -266,35 +266,34 @@
 ;; ## Public API
 
 (defn merged-config
-  "For the provided config, replaces instances of :sc/merge with resolved values."
-  [config]
-  (let [dep-graph (merges-dependency-graph config)
-        topo-nodes (dep/topo-sort dep-graph)]
-    (reduce (fn [config node-id]
-              (update config node-id #(apply-merge-defs % config node-id)))
-            config topo-nodes)))
+  "Applies any merge definitions, then  optionally selects just the specified subset of components, including
+  transitive dependencies.
 
-(defn merged-subconfig
-  "Applies any merge definitions, then selects just the specified subset of components."
+  This is useful for testing, to see the intermediate state before components are instantiated."
   ([config]
-   (merged-subconfig config nil))
+   (merged-config config nil))
   ([config component-ids]
-   (let [included-component-ids (or component-ids (keys config))]
-     (-> (merged-config config)
-         (subconfig-for-components included-component-ids)))))
+   (let [dep-graph (merges-dependency-graph config)
+         topo-nodes (dep/topo-sort dep-graph)
+         merged-config (reduce (fn [config node-id]
+                                 (update config node-id #(apply-merge-defs % config node-id)))
+                               config topo-nodes)]
+     (cond-> merged-config
+       (seq component-ids) (subconfig-for-components component-ids)))))
 
 (defn assemble-system
   "Assembles config into a system-map which can be used with `com.stuartsierra.component/start`.
 
   config - configuration for the system
+
   component-ids - a sequence of component ids. When provided, only the neccessary
-  .               parts of the system map to support those components will be inlcluded
-  .               in the final system map.
-  .               Default: all keys in the system"
+  parts of the system map to support those components will be inlcluded
+  in the final system map.
+  By default, the returned system contains all components from the supplied config."
   ([config]
    (assemble-system config nil))
   ([config component-ids]
-   (-> (merged-subconfig config component-ids)
+   (-> (merged-config config component-ids)
        (validate-config!)
        (load-namespaces!)
        (->> (lang/map-vals #(associate-dependency-metadata %)))

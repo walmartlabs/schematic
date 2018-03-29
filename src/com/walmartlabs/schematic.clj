@@ -21,7 +21,7 @@
 
 ;; ---------------------------------------------------------
 
-(defn ^:internal dependency-graph
+(defn ^:no-doc dependency-graph
   "Creates a dependency graph with dependencies identified by find-dep-fn"
   [config find-dep-fn]
   (reduce-kv (fn [g k v] (reduce #(dep/depend %1 k %2) g (find-dep-fn v)))
@@ -31,26 +31,26 @@
 ;; ---------------------------------------------------------
 ;; ## Finding/configuring component references/dependencies
 
-(defn ^:internal referred-component-ids
+(defn ^:no-doc referred-component-ids
   "Returns a sequence of component-id's for refs declared in component-config"
   [component-config]
   (some-> (:sc/refs component-config)
           (lang/mapify-seq)
           (vals)))
 
-(defn ^:internal missing-refs
+(defn ^:no-doc missing-refs
   "Finds refs which are missing for the supplied component-ids"
   [config]
   (let [all-declared-component-ids (-> config keys set)
         all-referred-component-ids (set (mapcat referred-component-ids (vals config)))]
     (clojure.set/difference all-referred-component-ids all-declared-component-ids)))
 
-(defn ^:internal ref-map-for-component
+(defn ^:no-doc ref-map-for-component
   "Finds refs declared in the component v and returns a map of local-names to system refs"
   [v]
   (or (lang/mapify-seq (:sc/refs v)) {}))
 
-(defn ^:internal resolve-init-fn [m]
+(defn ^:no-doc resolve-init-fn [m]
   (when-let [f-id (get m :sc/create-fn)]
     (if-let [f (resolve f-id)]
       f
@@ -58,7 +58,7 @@
                       {:fn f-id
                        :config m})))))
 
-(defn ^:internal associate-dependency-metadata
+(defn ^:no-doc associate-dependency-metadata
   "If v is an associative structure, finds any declared dependencies and associates appropriate
    Component metadata. If it is not associative, the original value is returned.
    Any pre-existing ::component/dependencies will be removed. "
@@ -73,13 +73,13 @@
       (component/using component' ref-map))
     v))
 
-(defn ^:internal throw-on-missing-refs [config]
+(defn ^:no-doc throw-on-missing-refs [config]
   (when-let [refs (seq (missing-refs config))]
     (throw (ex-info (str "Missing definitions for refs: " (clojure.string/join ", " refs))
                     {:reason ::missing-refs
                      :missing-refs refs}))))
 
-(defn ^:internal ref-dependency-graph
+(defn ^:no-doc ref-dependency-graph
   "Return a dependency graph of all the refs in a config."
   [config]
   (dependency-graph config referred-component-ids))
@@ -97,7 +97,7 @@
                            :component-map component-map
                            :create-fn create-fn})))))))
 
-(defn ^:internal find-create-fn-namespaces
+(defn ^:no-doc find-create-fn-namespaces
   "Returns a collection of symbols representing the namespaces of :sc/create-fn functions."
   [config]
   (->> (vals config)
@@ -107,7 +107,7 @@
        (map namespace)
        (map symbol)))
 
-(defn ^:internal load-namespaces!
+(defn ^:no-doc load-namespaces!
   "Automatically loads namespaces used in :sc/create-fn's.
    For convenience in threading macros, returns the config."
   [config]
@@ -118,7 +118,7 @@
 ;; --------------------------------------
 ;; ## Finding/applying merge definitions
 
-(defn ^:internal normalize-merge-def
+(defn ^:no-doc normalize-merge-def
   "Converts a merge definition to a standard form, which is:
    {:to [:bar] :from [:foo] :select {:my-host :host}}
    or
@@ -142,7 +142,7 @@
                         :select select})
     :else nil))
 
-(defn ^:internal merge-def-root
+(defn ^:no-doc merge-def-root
   "Given a merge definition, return the root element of the data to be copied/merged.
    The root element is the first key in the path to the the source data.
 
@@ -155,11 +155,11 @@
       :from
       first))
 
-(defn ^:internal merge-errors-of-type [error-type errors]
+(defn ^:no-doc merge-errors-of-type [error-type errors]
   (->> (map error-type errors)
        (apply merge-with (comp distinct concat))))
 
-(defn ^:internal throw-on-merge-errors
+(defn ^:no-doc throw-on-merge-errors
   "Examines the metadata of the provided config.
    If any ::merge-errors are found, they are collapsed into a
    single set of data which is thrown in an exception.
@@ -185,7 +185,7 @@
   [obj error-type component-id merge-def]
   (vary-meta obj update-in [::merge-errors error-type component-id] conj merge-def))
 
-(defn ^:internal merge-value
+(defn ^:no-doc merge-value
   "Evaluates the merge definition and applies the change to the component config.
    Note, the semantics for selecting/renaming keys is the inverse of clojure.set/rename-keys.
    This is due to the fact that Component declares dependencies using {:local :system} semantics,
@@ -221,14 +221,14 @@
                   (clojure.set/rename-keys (clojure.set/map-invert select))
                   (update-f))))))
 
-(defn ^:internal find-merge-defs
+(defn ^:no-doc find-merge-defs
   "Finds extracts merge-defs in v, if any.
    A merge-def is declared via `:sc/merge`."
   [v]
   (when (map? v)
     (:sc/merge v)))
 
-(defn ^:internal apply-merge-defs
+(defn ^:no-doc apply-merge-defs
   "Applies an optional :sc/merge declaration in m"
   [m config node-id]
   (if-let [merge-defs (:sc/merge m)]
@@ -236,14 +236,14 @@
         (lang/deep-merge (dissoc m :sc/merge-keys-in :sc/merge)))
     m))
 
-(defn ^:internal merges-dependency-graph
+(defn ^:no-doc merges-dependency-graph
   "Return a dependency graph of all the merge-defs in a config."
   [config]
   (dependency-graph config #(map merge-def-root (find-merge-defs %))))
 
 ;; -------------------------------------------------
 
-(defn ^:internal validate-config!
+(defn ^:no-doc validate-config!
   "Validates various aspects of the config, throwing an exception for any issues found.
    For convenience in threading macros, returns the config."
   [config]
@@ -252,7 +252,7 @@
   (throw-on-missing-refs config)
   config)
 
-(defn ^:internal subconfig-for-components
+(defn ^:no-doc subconfig-for-components
   "Returns a map of just the given components and their transitive dependencies"
   [system-config component-ids]
   (let [dep-graph (ref-dependency-graph system-config)]

@@ -271,7 +271,7 @@
 
   This is useful for testing, to see the intermediate state before components are instantiated."
   ([config]
-   (merged-subconfig config nil))
+   (merged-config config nil))
   ([config component-ids]
    (let [dep-graph (merges-dependency-graph config)
          topo-nodes (dep/topo-sort dep-graph)
@@ -293,7 +293,7 @@
   ([config]
    (assemble-system config nil))
   ([config component-ids]
-   (-> (merged-subconfig config component-ids)
+   (-> (merged-config config component-ids)
        (validate-config!)
        (load-namespaces!)
        (->> (lang/map-vals #(associate-dependency-metadata %)))

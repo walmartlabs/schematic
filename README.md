@@ -257,7 +257,7 @@ when assembling a system, so that only the needed components are started and sto
 Two possible such scenarios are: 
 * The config is shared among multiple applications, which 
 each need a portion of the components at runtime, but not all of them.
-* At the REPL, it might be useful get just a particular component and start it, such as a database connection.
+* At the REPL, it might be useful to get a particular component and start it, such as a database connection.
 
 In such cases, the `:component-ids` argument can be provided to `assemble-system`.
 The component-ids represent the top-level components which must be included in the final system.

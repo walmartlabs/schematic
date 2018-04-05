@@ -1,29 +1,31 @@
 version: 2
-
 jobs:
-  test:
+  build:
     docker:
-      - image: clojure:lein-2.7.1
-    working_directory: /root/schematic
+      - image: circleci/clojure:lein-2.7.1
+
+    working_directory: ~/repo
+
+    environment:
+      LEIN_ROOT: "true"
+      # Customize the JVM maximum heap limit
+      JVM_OPTS: -Xmx3200m
+    
     steps:
       - checkout
+
       - restore_cache:
           keys:
-            - &cache_key v1-dependency-jars-{{ checksum "project.clj" }}
-            - v1-dependency-jars
-      - run:
-          command: lein deps
-      - save_cache:
-          key: *cache_key
-          paths:
-            - /root/.m2
-      - run:
-          command: lein test2junit
-      - store_test_results:
-          path: /root/schematic/target/test2junit
+          - v1-dependencies-{{ checksum "project.clj" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
 
-workflows:
-  version: 2
-  test:
-    jobs:
-      - test
+      - run: lein deps
+
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: v1-dependencies-{{ checksum "project.clj" }}
+        
+      # run tests!
+      - run: lein test

@@ -22,6 +22,8 @@ The primary features provided by Schematic are:
 
 [API Documentation](http://walmartlabs.github.io/schematic/)
 
+[Blog Post](https://medium.com/@hlship/schematic-92b0b6ffdb26)
+
 ## Overview
 
 Schematic starts with a configuration map.
@@ -55,6 +57,7 @@ The simplest example is:
 (def config {:app {:host "localhost"}})  
        
 (->> (sc/assemble-system config)
+
      (component/start-system)
      (into {}) ;; put it into a map just so it prints in the REPL
      )

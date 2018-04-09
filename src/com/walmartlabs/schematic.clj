@@ -298,3 +298,50 @@
        (load-namespaces!)
        (->> (lang/map-vals #(associate-dependency-metadata %)))
        (component/map->SystemMap))))
+
+(defn constructor-fn
+  "Returns a constructor function that expands an abbreviated symbol to
+   the full value needed by Schematic (in the `:sc/create-fn` key).
+
+  Converts a symbol of form `foo/bar` to `org.example.foo/bar` (based on the namespace prefix, here `org.example`).
+
+  If the symbol name starts with an upper-case character, it is assumed to reference a record and
+  is prefixed with `map->` (e.g., `org.example.foo/map->Bar`)."
+  {:added "1.2.0"}
+  [namespace-prefix]
+  (fn [value]
+    (if-not (qualified-symbol? value)
+      value
+      (let [symbol-name (name value)
+            symbol-name' (if (-> symbol-name (.charAt 0) (Character/isUpperCase))
+                           (str "map->" symbol-name)
+                           symbol-name)]
+        ;; Rebuild the namespace of the symbol, adding a prefix to the namespace
+        ;; and, optionally, the symbol name.
+        (symbol (->> value namespace (str namespace-prefix "."))
+                symbol-name')))))
+
+(defn apply-constructor-fns
+  "Applies a map of constructor functions to all values in the config map.
+   The constructor functions are typically created by [[constructor-fn]], and exist to
+   allow more concise symbols with less repetetion.
+
+   When a config value contains one of the keys in constructor-fns, that key is removed.
+   The value is passed through the corresponding constructor fn, and that result becomes
+   the `:sc/create-fn`.
+
+   Once these expansions have been applied, the config is ready to pass to [[assemble-system]]."
+  {:added "1.2.0"}
+  [config constructor-fns]
+  (let [f (fn [component]
+            (reduce-kv (fn [c k v]
+                         (if-let [component-value (get c k)]
+                           (-> c
+                               (assoc :sc/create-fn (v component-value))
+                               (dissoc k)
+                               reduced)
+                           c))
+                       component
+                       constructor-fns))]
+    (lang/map-vals f config)))
+

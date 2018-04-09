@@ -392,3 +392,29 @@
                            :sc/refs {:body :comp/body}
                            :spin :left}}
              (sc/merged-config config [:comp/top]))))))
+
+(deftest constructor-fn
+  (let [f (sc/constructor-fn 'org.example)]
+    (is (= 'org.example.foo/bar)
+        (f 'foo/bar))
+
+    (is (= 'org.example.foo/map->Bar)
+        (f 'foo/Bar))
+
+    (is (= 'org.example.foo.bar/map->Baz)
+        (f 'foo.bar/Baz))))
+
+(deftest apply-constructor-fns
+  (let [raw-config {:comp/a {:sc/create-fn 'this.that/map->Other}
+                    :just-data {:foo 1
+                                :bar 2}
+                    :comp/b {:example/create-fn 'foo/Bar}
+                    :comp/c {:demo/create-fn 'baz/Nerf}}]
+    (is (= '{:comp/a {:sc/create-fn this.that/map->Other}
+             :comp/b {:sc/create-fn org.example.foo/map->Bar}
+             :comp/c {:sc/create-fn org.demo.baz/map->Nerf}
+             :just-data {:bar 2
+                         :foo 1}}
+           (sc/apply-constructor-fns raw-config
+                                     {:example/create-fn (sc/constructor-fn 'org.example)
+                                      :demo/create-fn (sc/constructor-fn 'org.demo)})))))

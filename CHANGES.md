@@ -1,7 +1,11 @@
 # 1.2.0 -- UNRELEASED
 
-Added new functions `constructor-fn` and `apply-constructor-fns` which can be
-used to decrease verbosity in a configuration.
+Added new `com.walmartlabs.schematic.transform` namespace
+which adds support for transforming a config before
+assembling it.
+
+Initially, this is to allow more concise (and less redundant)
+component create functions.
 
 # 1.1.0 -- 29 Mar 2018
 

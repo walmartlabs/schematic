@@ -16,7 +16,8 @@
   (:require [clojure.test :refer :all]
             [clojure.pprint]
             [com.stuartsierra.component :as component]
-            [com.walmartlabs.schematic :as sc])
+            [com.walmartlabs.schematic :as sc]
+            [com.walmartlabs.schematic.transform :as transform])
   (:import (clojure.lang ExceptionInfo)
            (java.io FileNotFoundException)))
 
@@ -393,28 +394,36 @@
                            :spin :left}}
              (sc/merged-config config [:comp/top]))))))
 
-(deftest constructor-fn
-  (let [f (sc/constructor-fn 'org.example)]
-    (is (= 'org.example.foo/bar)
-        (f 'foo/bar))
+(deftest extend-symbol
+  (is (= 'org.example.foo/bar
+         (transform/extend-symbol 'org.example 'foo/bar)))
+  (is (= 'org.example.foo/map->Bar
+         (transform/extend-symbol 'org.example 'foo/Bar)))
+  (is (= 'org.example.foo.bar/map->Baz)
+      (transform/extend-symbol 'org.example 'foo.bar/Baz)))
 
-    (is (= 'org.example.foo/map->Bar)
-        (f 'foo/Bar))
-
-    (is (= 'org.example.foo.bar/map->Baz)
-        (f 'foo.bar/Baz))))
+(deftest can-apply-multiple-transforms
+  ;; Nominally, the xforms are map->map, but for testing we can use
+  ;; simple values and simple functions.
+  (is (= {:a [:second [:first 1]]
+          :b [:second [:first 2]]}
+         (transform/apply-xforms {:a 1 :b 2}
+                                 [#(vector :first %)
+                                  #(vector :second %)]))))
 
 (deftest apply-constructor-fns
-  (let [raw-config {:comp/a {:sc/create-fn 'this.that/map->Other}
+  (let [raw-config '{:comp/a {:sc/create-fn this.that/map->Other}
                     :just-data {:foo 1
                                 :bar 2}
-                    :comp/b {:example/create-fn 'foo/Bar}
-                    :comp/c {:demo/create-fn 'baz/Nerf}}]
+                     :comp/b {:example/create-fn foo/Bar}
+                     :comp/c {:demo/create-fn baz/Nerf}
+                     :comp/odd {:demo/create-fn Odd}}]
     (is (= '{:comp/a {:sc/create-fn this.that/map->Other}
              :comp/b {:sc/create-fn org.example.foo/map->Bar}
              :comp/c {:sc/create-fn org.demo.baz/map->Nerf}
+             :comp/odd {:demo/create-fn Odd}
              :just-data {:bar 2
                          :foo 1}}
-           (sc/apply-constructor-fns raw-config
-                                     {:example/create-fn (sc/constructor-fn 'org.example)
-                                      :demo/create-fn (sc/constructor-fn 'org.demo)})))))
+           (transform/apply-xforms raw-config
+                                   [(transform/xform-constructor-fn :example/create-fn 'org.example)
+                                    (transform/xform-constructor-fn :demo/create-fn 'org.demo)])))))

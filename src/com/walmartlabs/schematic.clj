@@ -64,23 +64,22 @@
    Component metadata. If it is not associative, the original value is returned.
    Any pre-existing ::component/dependencies will be removed. "
   [v]
-  ;; Most everything value in a schematic system is a map defining the component, its dependencies, and its configuration.
-  ;; However, at the top level can be key/value pairs that are read and injected (via :sc/merge) into components,
-  ;; so leave those alone.
-  (if (map? v)
+  ;; Most every value in a schematic system is a map defining the component.
+  ;; However, at the top level, there can be key/value pairs where the value is a scalar type;
+  ;; these can be read and injected (via :sc/merge) into components, so leave those alone.
+  (if-not (map? v)
+    v
     (let [ref-map (ref-map-for-component v)
           init-fn (resolve-init-fn v)
-          component' (-> (cond-> v
-                           (map? v) (dissoc :sc/create-fn :sc/refs)
-                           init-fn (init-fn)))]
+          component' (cond-> (dissoc v :sc/create-fn :sc/refs)
+                       init-fn (init-fn))]
       (if (instance? IObj component')
         (-> component'
             ;; Sanity: clear any existing dependencies already present, though
             ;; it's not clear why they would be there!
             (vary-meta dissoc ::component/dependencies)
             (component/using ref-map))
-        component'))
-    v))
+        component'))))
 
 (defn ^:no-doc throw-on-missing-refs [config]
   (when-let [refs (seq (missing-refs config))]

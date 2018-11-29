@@ -17,7 +17,8 @@
             [com.stuartsierra.dependency :as dep]
             [com.stuartsierra.component :as component]
             [com.walmartlabs.schematic.lang :as lang])
-  (:refer-clojure :exclude [ref]))
+  (:refer-clojure :exclude [ref])
+  (:import (clojure.lang IObj)))
 
 ;; ---------------------------------------------------------
 
@@ -66,11 +67,16 @@
   (if (map? v)
     (let [ref-map (ref-map-for-component v)
           init-fn (resolve-init-fn v)
-          component' (cond-> v
-                       (map? v) (dissoc :sc/create-fn :sc/refs)
-                       init-fn (init-fn)
-                       (map? v) (vary-meta dissoc ::component/dependencies))]
-      (component/using component' ref-map))
+          component' (-> (cond-> v
+                           (map? v) (dissoc :sc/create-fn :sc/refs)
+                           init-fn (init-fn)))]
+      (if (instance? IObj component')
+        (-> component'
+            ;; Sanity: clear any existing dependencies already present, though
+            ;; it's not clear why they would be there!
+            (vary-meta dissoc ::component/dependencies)
+            (component/using ref-map))
+        component'))
     v))
 
 (defn ^:no-doc throw-on-missing-refs [config]

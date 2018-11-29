@@ -64,6 +64,9 @@
    Component metadata. If it is not associative, the original value is returned.
    Any pre-existing ::component/dependencies will be removed. "
   [v]
+  ;; Most everything value in a schematic system is a map defining the component, its dependencies, and its configuration.
+  ;; However, at the top level can be key/value pairs that are read and injected (via :sc/merge) into components,
+  ;; so leave those alone.
   (if (map? v)
     (let [ref-map (ref-map-for-component v)
           init-fn (resolve-init-fn v)

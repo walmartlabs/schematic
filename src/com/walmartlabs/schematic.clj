@@ -16,7 +16,9 @@
   (:require [clojure.pprint]
             [com.stuartsierra.dependency :as dep]
             [com.stuartsierra.component :as component]
-            [com.walmartlabs.schematic.lang :as lang])
+            [com.walmartlabs.schematic.lang :as lang]
+            [clojure.set :as set]
+            [clojure.string :as str])
   (:refer-clojure :exclude [ref]))
 
 ;; ---------------------------------------------------------
@@ -38,12 +40,23 @@
           (lang/mapify-seq)
           (vals)))
 
-(defn ^:no-doc missing-refs
-  "Finds refs which are missing for the supplied component-ids"
+(defn ^:private missing-refs
+  "Identifies any missing component references; returns a tuple of the unknown component ids
+   and the referencing component ids (the components containing references to unknown components).
+   Returns nil if there are no missing refs."
   [config]
   (let [all-declared-component-ids (-> config keys set)
-        all-referred-component-ids (set (mapcat referred-component-ids (vals config)))]
-    (clojure.set/difference all-referred-component-ids all-declared-component-ids)))
+        reducer (fn [m component-id component]
+                  (let [refs (-> component referred-component-ids set)
+                        bad-refs (set/difference refs all-declared-component-ids)]
+                    (if (seq bad-refs)
+                      (-> m
+                          (update :ids conj component-id)
+                          (update :refs set/union bad-refs))
+                      m)))]
+    (reduce-kv reducer {:ids #{}
+                        :refs #{}}
+               config)))
 
 (defn ^:no-doc ref-map-for-component
   "Finds refs declared in the component v and returns a map of local-names to system refs"
@@ -73,11 +86,23 @@
       (component/using component' ref-map))
     v))
 
+(defn ^:private joined-list
+  [coll]
+  (->> coll
+       sort
+       (map str)
+       (str/join ", ")))
+
 (defn ^:no-doc throw-on-missing-refs [config]
-  (when-let [refs (seq (missing-refs config))]
-    (throw (ex-info (str "Missing definitions for refs: " (clojure.string/join ", " refs))
-                    {:reason ::missing-refs
-                     :missing-refs refs}))))
+  (let [{:keys [ids refs]} (missing-refs config)]
+    (when (seq refs)
+      (throw (ex-info (str "Missing definitions for refs: "
+                           (joined-list refs)
+                           " in components: "
+                           (joined-list ids))
+                      {:reason ::missing-refs
+                       :missing-refs refs
+                       :component-ids ids})))))
 
 (defn ^:no-doc ref-dependency-graph
   "Return a dependency graph of all the refs in a config."
@@ -218,7 +243,7 @@
       ;; Select a subset of src-value, and merge that into dst
       :else (let [source-keys (vals select)]
               (-> (select-keys src-value source-keys)
-                  (clojure.set/rename-keys (clojure.set/map-invert select))
+                  (set/rename-keys (set/map-invert select))
                   (update-f))))))
 
 (defn ^:no-doc find-merge-defs

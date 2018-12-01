@@ -349,6 +349,21 @@
               :create-fn create-fn}
              (ex-data e))))))
 
+(deftest missing-refs-reported-with-component-ids
+  (let [config {:app/ok {:sc/refs {:bad-1 :comp/bad-1
+                                   :bad-2 :comp/bad-2}}
+                :comp/bad-1 {:sc/refs [:unknown-1]}
+                :comp/bad-2 {:sc/refs {:unknown :comp/unknown-2}}}]
+    (when-let [e (is (thrown? ExceptionInfo (sc/assemble-system config)))]
+      (is (= "Missing definitions for refs: :unknown-1, :comp/unknown-2 in components: :comp/bad-1, :comp/bad-2"
+             (.getMessage e)))
+      (is (= {:component-ids #{:comp/bad-1
+                               :comp/bad-2}
+              :missing-refs #{:comp/unknown-2
+                              :unknown-1}
+              :reason ::sc/missing-refs}
+             (ex-data e))))))
+
 (deftest invalid-required-in-map-fn
   (let [create-fn 'invalid-namespace/map->Foo
         config {:broken-component {:sc/create-fn create-fn}}]

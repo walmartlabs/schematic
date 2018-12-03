@@ -19,7 +19,8 @@
             [com.walmartlabs.schematic.lang :as lang]
             [clojure.set :as set]
             [clojure.string :as str])
-  (:refer-clojure :exclude [ref]))
+  (:refer-clojure :exclude [ref])
+  (:import (clojure.lang IObj)))
 
 ;; ---------------------------------------------------------
 
@@ -71,15 +72,24 @@
    Component metadata. If it is not associative, the original value is returned.
    Any pre-existing ::component/dependencies will be removed. "
   [v]
-  (if (map? v)
+  ;; Most every value in a schematic system is a map defining the component.
+  ;; However, at the top level, there can be key/value pairs where the value is a scalar type;
+  ;; these can be read and injected (via :sc/merge) into components, so leave those alone.
+  (if-not (map? v)
+    v
     (let [ref-map (ref-map-for-component v)
           init-fn (resolve-init-fn v)
-          component' (cond-> v
-                       (map? v) (dissoc :sc/create-fn :sc/refs)
-                       init-fn (init-fn)
-                       (map? v) (vary-meta dissoc ::component/dependencies))]
-      (component/using component' ref-map))
-    v))
+          component' (cond-> (dissoc v :sc/create-fn :sc/refs)
+                       init-fn (init-fn))]
+      (if (instance? IObj component')
+        (-> component'
+            ;; Sanity: clear any existing dependencies already present, though
+            ;; Such dependencies might exist in the metadata if a plain-Component constructor
+            ;; function is being re-used as a Schematic component init function.
+            ;; Schematic does not honor any dependency metadata applied by other means.
+            (vary-meta dissoc ::component/dependencies)
+            (component/using ref-map))
+        component'))))
 
 (defn ^:private joined-list
   [coll]

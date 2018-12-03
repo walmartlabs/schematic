@@ -378,11 +378,28 @@
 
 (deftest remove-existing-dependency-metadata
   (testing "existing Component dependency metadata is removed"
-    (let [config {:app {:sc/create-fn 'com.walmartlabs.schematic-test/new-component-with-dependency-metadata}}]
+    (let [config {:app {:sc/create-fn `new-component-with-dependency-metadata}}]
       (is (= {:my :app}
              (-> (sc/assemble-system config)
                  (component/start)
                  :app))))))
+
+(def ^:private psuedo-component (Object.))
+
+(def ^:private new-psuedo-component (constantly psuedo-component))
+
+(deftest allows-non-map-from-init-fn
+  ;; An init-fn may return something not a map, but still a component; it might even have
+  ;; the Lifecycle protocol extended on it.
+  (let [config {:comp/psuedo {:sc/create-fn `new-psuedo-component}
+                :app {:sc/refs {:psuedo :comp/psuedo}}}
+        system (-> config
+                   sc/assemble-system
+                   component/start)]
+    (is (= {:psuedo psuedo-component}
+           (:app system)))
+    (is (identical? psuedo-component
+                    (:comp/psuedo system)))))
 
 (deftest test-debug-fn
   (let [config '{:top {:spin :left}

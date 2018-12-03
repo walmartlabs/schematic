@@ -76,7 +76,9 @@
       (if (instance? IObj component')
         (-> component'
             ;; Sanity: clear any existing dependencies already present, though
-            ;; it's not clear why they would be there!
+            ;; Such dependencies might exist in the metadata if a plain-Component constructor
+            ;; function is being re-used as a Schematic component init function. 
+            ;; Schematic does not honor any dependency metadata applied by other means. 
             (vary-meta dissoc ::component/dependencies)
             (component/using ref-map))
         component'))))

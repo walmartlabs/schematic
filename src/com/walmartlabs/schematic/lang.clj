@@ -19,11 +19,12 @@
   "Maps f over every value in the hash-map mm and returns a new
   hash-map. E.g (map-vals inc {:a 1 :b 2}) => {:a 2 :b 3}"
   [f mm]
-  (reduce-kv (fn [output k v]
-               (assoc output
-                      k (f v)))
-             {}
-             mm))
+  (->> mm
+       (reduce-kv (fn [output k v]
+                    (assoc! output
+                            k (f v)))
+                  (transient {}))
+       persistent!))
 
 (defn deep-merge
   "Like merge, but merges maps recursively."

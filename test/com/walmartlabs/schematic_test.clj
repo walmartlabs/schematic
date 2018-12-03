@@ -358,11 +358,9 @@
     (when-let [e (is (thrown? ExceptionInfo (sc/assemble-system config)))]
       (is (= "Missing definitions for refs: :unknown-1, :comp/unknown-2 in components: :comp/bad-1, :comp/bad-2"
              (.getMessage e)))
-      (is (= {:component-ids #{:comp/bad-1
-                               :comp/bad-2}
-              :missing-refs #{:comp/unknown-2
-                              :unknown-1}
-              :reason ::sc/missing-refs}
+      (is (= {:reason :com.walmartlabs.schematic/missing-refs
+              :references #:comp{:bad-1 #{:unknown-1}
+                                 :bad-2 #{:comp/unknown-2}}}
              (ex-data e))))))
 
 (deftest invalid-required-in-map-fn

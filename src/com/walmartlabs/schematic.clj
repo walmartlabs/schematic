@@ -41,22 +41,17 @@
           (vals)))
 
 (defn ^:private missing-refs
-  "Identifies any missing component references; returns a tuple of the unknown component ids
-   and the referencing component ids (the components containing references to unknown components).
-   Returns nil if there are no missing refs."
+  "Identifies any missing component references; Returns a map where the key is
+  a component id and the value is a set of missing references for that component id."
   [config]
   (let [all-declared-component-ids (-> config keys set)
         reducer (fn [m component-id component]
                   (let [refs (-> component referred-component-ids set)
                         bad-refs (set/difference refs all-declared-component-ids)]
                     (if (seq bad-refs)
-                      (-> m
-                          (update :ids conj component-id)
-                          (update :refs set/union bad-refs))
+                      (assoc m component-id bad-refs)
                       m)))]
-    (reduce-kv reducer {:ids #{}
-                        :refs #{}}
-               config)))
+    (reduce-kv reducer {} config)))
 
 (defn ^:no-doc ref-map-for-component
   "Finds refs declared in the component v and returns a map of local-names to system refs"
@@ -94,15 +89,17 @@
        (str/join ", ")))
 
 (defn ^:no-doc throw-on-missing-refs [config]
-  (let [{:keys [ids refs]} (missing-refs config)]
-    (when (seq refs)
+  (let [missing (missing-refs config)]
+    (when-not (empty? missing)
       (throw (ex-info (str "Missing definitions for refs: "
-                           (joined-list refs)
+                           (->> missing
+                                vals
+                                (reduce into)
+                                joined-list)
                            " in components: "
-                           (joined-list ids))
+                           (-> missing keys joined-list))
                       {:reason ::missing-refs
-                       :missing-refs refs
-                       :component-ids ids})))))
+                       :references missing})))))
 
 (defn ^:no-doc ref-dependency-graph
   "Return a dependency graph of all the refs in a config."

@@ -1,4 +1,4 @@
-# 1.2.0 -- UNRELEASED
+# 1.2.0 -- 4 Dec 2018
 
 Added new `com.walmartlabs.schematic.transform` namespace
 which adds support for transforming a config before

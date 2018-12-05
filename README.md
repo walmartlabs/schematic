@@ -20,7 +20,7 @@ The primary features provided by Schematic are:
 [component]: https://github.com/stuartsierra/component
 [integrant]: https://github.com/weavejester/integrant
 
-[API Documentation](http://walmartlabs.github.io/schematic/)
+[API Documentation](http://walmartlabs.github.io/apidocs/schematic/)
 
 [Blog Post](https://medium.com/@hlship/schematic-92b0b6ffdb26)
 

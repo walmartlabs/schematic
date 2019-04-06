@@ -1,3 +1,7 @@
+# Unreleased
+
+Use `com.stuartsierra.dependency/transitive-dependencies` instead of direct Record field access.
+
 # 1.2.0 -- 4 Dec 2018
 
 Added new `com.walmartlabs.schematic.transform` namespace

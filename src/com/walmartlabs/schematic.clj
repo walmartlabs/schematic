@@ -287,12 +287,11 @@
 (defn ^:no-doc subconfig-for-components
   "Returns a map of just the given components and their transitive dependencies"
   [system-config component-ids]
-  (let [dep-graph (ref-dependency-graph system-config)]
-    (loop [ref-ids component-ids deps (set component-ids)]
-      (if-let [ref-id (first ref-ids)]
-        (let [new-deps (get-in dep-graph [:dependencies ref-id])]
-          (recur (concat (rest ref-ids) new-deps) (into deps new-deps)))
-        (select-keys system-config deps)))))
+  (let [dep-graph (ref-dependency-graph system-config)
+        target-keys (->> (mapcat (partial dep/transitive-dependencies dep-graph) component-ids)
+                         (into component-ids)
+                         (set))]
+    (select-keys system-config target-keys)))
 
 ;; -------------------------------------------------
 ;; ## Public API

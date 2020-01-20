@@ -3,7 +3,7 @@
   :url "https://github.com/walmartlabs/schematic"
   :license {:name "Apache Software License 2.0"
             :url "http://www.apache.org/licenses/LICENSE-2.0"}
-  :dependencies [[org.clojure/clojure "1.9.0"]
+  :dependencies [[org.clojure/clojure "1.10.1"]
                  [com.stuartsierra/component "0.3.2"]]
   :plugins [[lein-codox "0.10.3"]
             [test2junit "1.2.5"]]

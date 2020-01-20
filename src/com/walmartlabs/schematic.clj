@@ -69,8 +69,7 @@
 
 (defn ^:no-doc associate-dependency-metadata
   "If v is an associative structure, finds any declared dependencies and associates appropriate
-   Component metadata. If it is not associative, the original value is returned.
-   Any pre-existing ::component/dependencies will be removed. "
+   Component metadata. If it is not associative, the original value is returned."
   [v]
   ;; Most every value in a schematic system is a map defining the component.
   ;; However, at the top level, there can be key/value pairs where the value is a scalar type;
@@ -83,11 +82,8 @@
                        init-fn (init-fn))]
       (if (instance? IObj component')
         (-> component'
-            ;; Sanity: clear any existing dependencies already present, though
-            ;; Such dependencies might exist in the metadata if a plain-Component constructor
-            ;; function is being re-used as a Schematic component init function.
-            ;; Schematic does not honor any dependency metadata applied by other means.
-            (vary-meta dissoc ::component/dependencies)
+            ;; Starting in 1.3, components (created by the create/fn) may have some dependencies which
+            ;; will be added to by Schematic.
             (component/using ref-map))
         component'))))
 

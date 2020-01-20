@@ -2,6 +2,9 @@
 
 Use `com.stuartsierra.dependency/transitive-dependencies` instead of direct Record field access.
 
+Schematic no longer clear dependencies that may already exist on a component returned by
+a create function; it will simply add further dependencies.
+
 # 1.2.0 -- 4 Dec 2018
 
 Added new `com.walmartlabs.schematic.transform` namespace

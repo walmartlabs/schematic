@@ -368,20 +368,25 @@
         config {:broken-component {:sc/create-fn create-fn}}]
     (when-let [e (is (thrown? FileNotFoundException
                               (sc/assemble-system config)))]
-      (is (= "Could not locate invalid_namespace__init.class or invalid_namespace.clj on classpath. Please check that namespaces with dashes use underscores in the Clojure file name."
+      (is (= "Could not locate invalid_namespace__init.class, invalid_namespace.clj or invalid_namespace.cljc on classpath. Please check that namespaces with dashes use underscores in the Clojure file name."
              (.getMessage e))))))
 
 (defn ^:private new-component-with-dependency-metadata
   "Returns a component which has existing Component dependency metadata"
   [_]
-  (component/using {:my :app} {:web-server :bad-webserver}))
+  (component/using {:app true} {:web-server :comp/web-server}))
 
-(deftest remove-existing-dependency-metadata
-  (testing "existing Component dependency metadata is removed"
-    (let [config {:app {:sc/create-fn `new-component-with-dependency-metadata}}]
-      (is (= {:my :app}
+(deftest keeps-existing-dependency-metadata
+  (testing "existing Component dependency metadata is maintained"
+    (let [config {:app {:sc/create-fn `new-component-with-dependency-metadata
+                        :sc/refs {:db :comp/db}}
+                  :comp/web-server {:web-server true}
+                  :comp/db {:db true}}]
+      (is (= {:app true
+              :db {:db true}
+              :web-server {:web-server true}}
              (-> (sc/assemble-system config)
-                 (component/start)
+                 component/start-system
                  :app))))))
 
 (def ^:private psuedo-component (Object.))

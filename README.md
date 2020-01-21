@@ -81,7 +81,7 @@ A more complete example is:
    (assoc this :started nil)))
 
 (def config
-  {:app {:sc/create-fn 'user/map->App
+  {:app {:sc/create-fn `map->App
          :sc/refs {:server :webserver}
          :sc/merge [{:to [:api-keys] :from [:api :keys]}]}
   
@@ -110,6 +110,9 @@ A more complete example is:
 Notice, in the above, that the Schematic keys (`:sc/create-fn`, etc.) have
 been removed, and the configuration for the `:app` component has been
 extended via `:sc/merge`.
+
+Of course, in a more realistic example, the configuration data would be read from 
+an EDN file, rather than hard-coded into the application.
 
 The following sections will cover aspects seen in the above example.
 
@@ -264,8 +267,9 @@ Two possible such scenarios are:
 each need a portion of the components at runtime, but not all of them.
 * At the REPL, it might be useful to get a particular component and start it, such as a database connection.
 
-In such cases, the `:component-ids` argument can be provided to `assemble-system`.
-The component-ids represent the top-level components which must be included in the final system.
+In such cases, the two argument version of `assemble-system` can be invoked, passing
+the list of component ids as the second parameter.
+There are the top-level components which must be included in the final system.
 Only these top-level components and all of their transitive dependencies will be included in
 the final system map.
 
@@ -291,6 +295,8 @@ Example (include single app):
 ;;  :db-conn {:host "localhost", :username "user", :password "secret"}}
 ```
 Notice that `:app-2` and `:customer-api` have not been included in the final system.
+
+This filtering of components occurs before components are properly instantiated (via the :sc/create-fn function).
 
 Example (development at the REPL):
 ```clojure

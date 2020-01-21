@@ -350,6 +350,22 @@
               :create-fn create-fn}
              (ex-data e))))))
 
+(defn blow-up
+  [component-data]
+  (throw (ex-info "Blow Up" {:component-data component-data})))
+
+(deftest exception-inside-create-fn
+  (let [create-fn `blow-up
+        config {:broken-component {:sc/create-fn create-fn
+                                   :gnip :gnop}}]
+    (when-let [e (is (thrown? ExceptionInfo
+                              (sc/assemble-system config)))]
+      (is (= "Unable to instantiate component :broken-component - Blow Up"
+             (.getMessage e)))
+      (is (= {:component-key :broken-component
+              :component-map (:broken-component config)}
+             (ex-data e))))))
+
 (deftest missing-refs-reported-with-component-ids
   (let [config {:app/ok {:sc/refs {:bad-1 :comp/bad-1
                                    :bad-2 :comp/bad-2}}
@@ -374,19 +390,14 @@
 (defn ^:private new-component-with-dependency-metadata
   "Returns a component which has existing Component dependency metadata"
   [_]
-  (component/using {:app true} {:web-server :comp/web-server}))
+  (component/using {:my :app} {:web-server :bad-webserver}))
 
-(deftest keeps-existing-dependency-metadata
-  (testing "existing Component dependency metadata is maintained"
-    (let [config {:app {:sc/create-fn `new-component-with-dependency-metadata
-                        :sc/refs {:db :comp/db}}
-                  :comp/web-server {:web-server true}
-                  :comp/db {:db true}}]
-      (is (= {:app true
-              :db {:db true}
-              :web-server {:web-server true}}
+(deftest remove-existing-dependency-metadata
+  (testing "existing Component dependency metadata is removed"
+    (let [config {:app {:sc/create-fn `new-component-with-dependency-metadata}}]
+      (is (= {:my :app}
              (-> (sc/assemble-system config)
-                 component/start-system
+                 (component/start)
                  :app))))))
 
 (def ^:private psuedo-component (Object.))

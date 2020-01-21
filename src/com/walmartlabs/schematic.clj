@@ -24,7 +24,7 @@
 
 ;; ---------------------------------------------------------
 
-(defn ^:no-doc dependency-graph
+(defn ^:private dependency-graph
   "Creates a dependency graph with dependencies identified by find-dep-fn"
   [config find-dep-fn]
   (reduce-kv (fn [g k v] (reduce #(dep/depend %1 k %2) g (find-dep-fn v)))
@@ -34,7 +34,7 @@
 ;; ---------------------------------------------------------
 ;; ## Finding/configuring component references/dependencies
 
-(defn ^:no-doc referred-component-ids
+(defn ^:private referred-component-ids
   "Returns a sequence of component-id's for refs declared in component-config"
   [component-config]
   (some-> (:sc/refs component-config)
@@ -54,38 +54,50 @@
                       m)))]
     (reduce-kv reducer {} config)))
 
-(defn ^:no-doc ref-map-for-component
+(defn ^:private ref-map-for-component
   "Finds refs declared in the component v and returns a map of local-names to system refs"
   [v]
   (or (lang/mapify-seq (:sc/refs v)) {}))
 
-(defn ^:no-doc resolve-init-fn [m]
-  (when-let [f-id (get m :sc/create-fn)]
+(defn ^:private resolve-init-fn [component-map]
+  (when-let [f-id (get component-map :sc/create-fn)]
     (if-let [f (resolve f-id)]
       f
       (throw (ex-info (str "Unable to resolve declared create-fn: " f-id ". Perhaps the enclosing namespace needs to be 'required'.")
-                      {:fn f-id
-                       :config m})))))
+                      {:fn f-id})))))
 
-(defn ^:no-doc associate-dependency-metadata
+(defn ^:private associate-dependency-metadata
   "If v is an associative structure, finds any declared dependencies and associates appropriate
-   Component metadata. If it is not associative, the original value is returned."
-  [v]
-  ;; Most every value in a schematic system is a map defining the component.
-  ;; However, at the top level, there can be key/value pairs where the value is a scalar type;
-  ;; these can be read and injected (via :sc/merge) into components, so leave those alone.
-  (if-not (map? v)
-    v
-    (let [ref-map (ref-map-for-component v)
-          init-fn (resolve-init-fn v)
-          component' (cond-> (dissoc v :sc/create-fn :sc/refs)
-                       init-fn (init-fn))]
-      (if (instance? IObj component')
-        (-> component'
-            ;; Starting in 1.3, components (created by the create/fn) may have some dependencies which
-            ;; will be added to by Schematic.
-            (component/using ref-map))
-        component'))))
+   Component metadata. If it is not associative, the original value is returned.
+   Any pre-existing ::component/dependencies will be removed. "
+  [m k v]
+  (assoc m k
+         (try
+           ;; Most every value in a schematic system is a map defining the component.
+           ;; However, at the top level, there can be key/value pairs where the value is a scalar type;
+           ;; these can be read and injected (via :sc/merge) into components, so leave those alone.
+           (if-not (map? v)
+             v
+             (let [ref-map (ref-map-for-component v)
+                   init-fn (resolve-init-fn v)
+                   component' (cond-> (dissoc v :sc/create-fn :sc/refs)
+                                init-fn (init-fn))]
+               (if (instance? IObj component')
+                 (-> component'
+                     ;; Sanity: clear any existing dependencies already present, though
+                     ;; Such dependencies might exist in the metadata if a plain-Component constructor
+                     ;; function is being re-used as a Schematic component init function.
+                     ;; Schematic does not honor any dependency metadata applied by other means.
+                     (vary-meta dissoc ::component/dependencies)
+                     (component/using ref-map))
+                 component')))
+           (catch Throwable t
+             (throw (ex-info (str "Unable to instantiate component " k " - "
+                                  (or (ex-message t)
+                                      (-> t class .getName)))
+                             {:component-key k
+                              :component-map v}
+                             t))))))
 
 (defn ^:private joined-list
   [coll]
@@ -94,7 +106,7 @@
        (map str)
        (str/join ", ")))
 
-(defn ^:no-doc throw-on-missing-refs [config]
+(defn ^:private throw-on-missing-refs [config]
   (let [missing (missing-refs config)]
     (when-not (empty? missing)
       (throw (ex-info (str "Missing definitions for refs: "
@@ -107,7 +119,7 @@
                       {:reason ::missing-refs
                        :references missing})))))
 
-(defn ^:no-doc ref-dependency-graph
+(defn ^:private ref-dependency-graph
   "Return a dependency graph of all the refs in a config."
   [config]
   (dependency-graph config referred-component-ids))
@@ -125,7 +137,7 @@
                            :component-map component-map
                            :create-fn create-fn})))))))
 
-(defn ^:no-doc find-create-fn-namespaces
+(defn ^:private find-create-fn-namespaces
   "Returns a collection of symbols representing the namespaces of :sc/create-fn functions."
   [config]
   (->> (vals config)
@@ -135,7 +147,7 @@
        (map namespace)
        (map symbol)))
 
-(defn ^:no-doc load-namespaces!
+(defn ^:private load-namespaces!
   "Automatically loads namespaces used in :sc/create-fn's.
    For convenience in threading macros, returns the config."
   [config]
@@ -170,7 +182,7 @@
                         :select select})
     :else nil))
 
-(defn ^:no-doc merge-def-root
+(defn ^:private merge-def-root
   "Given a merge definition, return the root element of the data to be copied/merged.
    The root element is the first key in the path to the the source data.
 
@@ -183,11 +195,11 @@
       :from
       first))
 
-(defn ^:no-doc merge-errors-of-type [error-type errors]
+(defn ^:private merge-errors-of-type [error-type errors]
   (->> (map error-type errors)
        (apply merge-with (comp distinct concat))))
 
-(defn ^:no-doc throw-on-merge-errors
+(defn ^:private throw-on-merge-errors
   "Examines the metadata of the provided config.
    If any ::merge-errors are found, they are collapsed into a
    single set of data which is thrown in an exception.
@@ -249,14 +261,14 @@
                   (set/rename-keys (set/map-invert select))
                   (update-f))))))
 
-(defn ^:no-doc find-merge-defs
+(defn ^:private find-merge-defs
   "Finds extracts merge-defs in v, if any.
    A merge-def is declared via `:sc/merge`."
   [v]
   (when (map? v)
     (:sc/merge v)))
 
-(defn ^:no-doc apply-merge-defs
+(defn ^:private apply-merge-defs
   "Applies an optional :sc/merge declaration in m"
   [m config node-id]
   (if-let [merge-defs (:sc/merge m)]
@@ -264,14 +276,14 @@
         (lang/deep-merge (dissoc m :sc/merge-keys-in :sc/merge)))
     m))
 
-(defn ^:no-doc merges-dependency-graph
+(defn ^:private merges-dependency-graph
   "Return a dependency graph of all the merge-defs in a config."
   [config]
   (dependency-graph config #(map merge-def-root (find-merge-defs %))))
 
 ;; -------------------------------------------------
 
-(defn ^:no-doc validate-config!
+(defn ^:private validate-config!
   "Validates various aspects of the config, throwing an exception for any issues found.
    For convenience in threading macros, returns the config."
   [config]
@@ -280,7 +292,7 @@
   (throw-on-missing-refs config)
   config)
 
-(defn ^:no-doc subconfig-for-components
+(defn ^:private subconfig-for-components
   "Returns a map of just the given components and their transitive dependencies"
   [system-config component-ids]
   (let [dep-graph (ref-dependency-graph system-config)
@@ -323,5 +335,6 @@
    (-> (merged-config config component-ids)
        (validate-config!)
        (load-namespaces!)
-       (->> (lang/map-vals #(associate-dependency-metadata %)))
+       (->> (reduce-kv associate-dependency-metadata
+                       {}))
        (component/map->SystemMap))))

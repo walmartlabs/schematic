@@ -6,6 +6,9 @@ Schematic now captures exceptions while creating components, and wraps those exc
 about the component key and component map, making it much easier to identify where
 the error has taken place.
 
+Several functions that were previously public (but marked as ^:no-doc) are now private.
+These functions were only exposed for testing purposes.
+
 Schematic now requires Clojure 1.10.1.
 
 [Closed Issues](https://github.com/walmartlabs/schematic/milestone/3?closed=1)

@@ -350,6 +350,22 @@
               :create-fn create-fn}
              (ex-data e))))))
 
+(defn blow-up
+  [component-data]
+  (throw (ex-info "Blow Up" {:component-data component-data})))
+
+(deftest exception-inside-create-fn
+  (let [create-fn `blow-up
+        config {:broken-component {:sc/create-fn create-fn
+                                   :gnip :gnop}}]
+    (when-let [e (is (thrown? ExceptionInfo
+                              (sc/assemble-system config)))]
+      (is (= "Unable to instantiate component :broken-component - Blow Up"
+             (.getMessage e)))
+      (is (= {:component-key :broken-component
+              :component-map (:broken-component config)}
+             (ex-data e))))))
+
 (deftest missing-refs-reported-with-component-ids
   (let [config {:app/ok {:sc/refs {:bad-1 :comp/bad-1
                                    :bad-2 :comp/bad-2}}
@@ -368,7 +384,7 @@
         config {:broken-component {:sc/create-fn create-fn}}]
     (when-let [e (is (thrown? FileNotFoundException
                               (sc/assemble-system config)))]
-      (is (= "Could not locate invalid_namespace__init.class or invalid_namespace.clj on classpath. Please check that namespaces with dashes use underscores in the Clojure file name."
+      (is (= "Could not locate invalid_namespace__init.class, invalid_namespace.clj or invalid_namespace.cljc on classpath. Please check that namespaces with dashes use underscores in the Clojure file name."
              (.getMessage e))))))
 
 (defn ^:private new-component-with-dependency-metadata

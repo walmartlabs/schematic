@@ -1,4 +1,4 @@
-# Unreleased
+# 1.3.0 -- 22 May 2020
 
 Schematic now uses `com.stuartsierra.dependency/transitive-dependencies` instead of direct record field access.
 
@@ -12,6 +12,7 @@ These functions were only exposed for testing purposes.
 Schematic now requires Clojure 1.10.1.
 
 [Closed Issues](https://github.com/walmartlabs/schematic/milestone/3?closed=1)
+
 
 # 1.2.0 -- 4 Dec 2018
 

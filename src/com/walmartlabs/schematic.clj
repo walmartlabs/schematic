@@ -321,12 +321,12 @@
        (seq component-ids) (subconfig-for-components component-ids)))))
 
 (defn assemble-system
-  "Assembles config into a system-map which can be used with `com.stuartsierra.component/start`.
+  "Assembles config into a system-map which can be used with `com.stuartsierra.component/start-system`.
 
   config - configuration for the system
 
-  component-ids - a sequence of component ids. When provided, only the neccessary
-  parts of the system map to support those components will be inlcluded
+  component-ids - a sequence of component ids. When provided, only the necessary
+  parts of the system map to support those components will be included
   in the final system map.
   By default, the returned system contains all components from the supplied config."
   ([config]
